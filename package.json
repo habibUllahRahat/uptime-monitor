@@ -1,24 +1,27 @@
 {
-  "name": "raw_node_app",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "12.18.0",
-      "onFail": "download"
-    }
-  },
-  "packageManager": "pnpm@12.18.0",
-  "type": "module",
-  "devDependencies": {
-    "eslint": "^10.14.0"
-  }
+	"name": "raw_node_app",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "nodemon index"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "12.18.0",
+			"onFail": "download"
+		}
+	},
+	"packageManager": "pnpm@12.18.0",
+	"devDependencies": {
+		"eslint": "^10.14.0"
+	},
+	"dependencies": {
+		"nodemon": "^3.1.14"
+	}
 }
