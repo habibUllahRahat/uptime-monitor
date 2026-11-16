@@ -1,26 +1,31 @@
 // Dpendencies
 const { StringDecoder } = require("string_decoder");
 const url = require("url");
-
+const routes = require("../routes.js");
 //handle object - module scaffolding
 const handle = {};
 
 handle.handleReqRes = (req, res) => {
-	//request handle
-	//get the url and parse it
-	const parsedUrl = url.parse(req.url, true); // syntax: url.parse(url, boolean value for gettng query string)
+	const parsedUrl = url.parse(req.url, true); // syntax: url.parse(url, boolean value for gettng query string, slashesDenoteHost?: boolean)
 
-	//get the path
-	const pathname = parsedUrl.pathname;
-	const trimmePath = pathname.replace(/^\/+|$/g, ""); // ^: Start of string, \/: Escape forward slash, +: One or more occurrences, *: Zero or more occurrences, |: OR (alternation), $: End of string, /g: Global flag (match all occurrences).
-	//method name
+	const pathname = parsedUrl.pathname; //get the path
+	const trimmedPath = pathname.replace(/^\/+|$/g, "");
+	/* 
+	First /		Starts the regex
+	^					Start of string
+	\/				Matches a literal forward slash /
+	+					One or more occurrences
+	\|				OR (alternation)
+	$					End of string
+	Last /		Ends the regex
+	g					Global flag to match all occurrences of the pattern in the string
+	!Remember: The first and last / are delimiters. They are not part of the matching pattern.
+	*/
 	const method = req.method.toLowerCase(); // toLowerCase() to convert the method name to lowercase cause it can be GET or get
-	//query string
-	const queryString = parsedUrl.query;
-	//headers
-	const headers = req.headers; //request meta data
+	const queryString = parsedUrl.query; //get query string
+	const headers = req.headers; //headers has request meta data
 	console.log(headers);
-	//body -> before we leared decoding using buffer.toString(), now we will use Node.js preffered version which using StringDecoder class to decode the body
+	//# body -> before we leared decoding using buffer.toString(), now we will use Node.js preffered version which using StringDecoder class to decode the body
 	const decoder = new StringDecoder("utf-8");
 	let realData = "";
 	req.on("data", (buffer) => {
@@ -32,6 +37,23 @@ handle.handleReqRes = (req, res) => {
 		console.log(`\nall data received, The realdata is: `, realData, "\n"); //data show full even though it is big cause it request.end() is called
 		res.end("hello world, The realdata is: " + realData);
 	});
+	const requestProperties = {
+		parsedUrl,
+		pathname,
+		trimmedPath,
+		method,
+		queryString,
+		headers,
+	};
+	const chosenHandler = routes[trimmedPath] ? routes[trimmedPath] : routes.notFound;
+	chosenHandler(requestProperties, (statusCode, payload) => {
+		statusCode = statusCode || 500;
+		payload = typeof payload === "object" ? payload : { message: payload };
+		const payloadString = JSON.stringify(payload);
+		res.writeHead(statusCode, { "Content-Type": "application/json" });
+		res.end(payloadString);
+	});
+	/* 
 	//ip
 	const ip = req.connection.remoteAddress;
 	//status code
@@ -40,6 +62,7 @@ handle.handleReqRes = (req, res) => {
 	const statusMessage = res.statusMessage;
 	//response handle
 	res.end("Hello World, server is running!");
+	*/
 };
 
 module.exports = handle;
