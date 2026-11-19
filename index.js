@@ -21,22 +21,33 @@ srcipts in package.json
 
 //Dependencies
 const http = require("http"); //if it not work check the package.json cause there could be "type":"module" remove it
-// const url = require("url");
-//const { StringDecoder } = require("string_decoder"); // we dont need this to use here cause we moved our handleReqRes to helpers/handleReqRes.js
 const { handleReqRes } = require("./helpers/handleReqRes");
+const environment = require("./helpers/environment.js");
+const data = require("./lib/data.js");
 // app object - module scaffolding
 const app = {};
 
+data.delete(
+	"test", //subfolder(it sould be already exist)
+	"new_test_file", //it would be created if it not exist
+	(err, data) => {
+		console.log("Whatever happened success is:");
+		console.log(err);
+		console.log(data);
+	},
+);
+
 //configuration
-app.config = {
-	port: 3000,
-};
+/*  app.config = {
+	port: 3000, // good practice is use ENV value
+};  */
 
 //create server
 app.createServer = () => {
 	const server = http.createServer(app.hadleReqRes);
-	server.listen(app.config.port, () => {
-		console.log(`Server is running on port http://127.0.0.1:${app.config.port}/`);
+	server.listen(environment.port, () => {
+		console.log(`env variable is ${process.env.NODE_ENV}`); // now if we run NODE_ENV=production it will print production
+		console.log(`Server is running on port http://127.0.0.1:${environment.port}/`);
 	});
 };
 /* ! Because our handle function became bigger so we will split into a helper file at handleReqRes.js it call code refactoring

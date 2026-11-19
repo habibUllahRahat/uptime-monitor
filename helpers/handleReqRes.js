@@ -35,6 +35,13 @@ handle.handleReqRes = (req, res) => {
 	req.on("end", () => {
 		realData += decoder.end();
 		console.log(`\nall data received, The realdata is: `, realData, "\n"); //data show full even though it is big cause it request.end() is called
+		chosenHandler(requestProperties, (statusCode, payload) => {
+		statusCode = statusCode || 500;
+		payload = typeof payload === "object" ? payload : { message: payload };
+		const payloadString = JSON.stringify(payload);
+		res.writeHead(statusCode, { "Content-Type": "application/json" });
+		res.end(payloadString);
+	});
 		res.end("hello world, The realdata is: " + realData);
 	});
 	const requestProperties = {
@@ -46,13 +53,7 @@ handle.handleReqRes = (req, res) => {
 		headers,
 	};
 	const chosenHandler = routes[trimmedPath] ? routes[trimmedPath] : routes.notFound;
-	chosenHandler(requestProperties, (statusCode, payload) => {
-		statusCode = statusCode || 500;
-		payload = typeof payload === "object" ? payload : { message: payload };
-		const payloadString = JSON.stringify(payload);
-		res.writeHead(statusCode, { "Content-Type": "application/json" });
-		res.end(payloadString);
-	});
+	
 	/* 
 	//ip
 	const ip = req.connection.remoteAddress;
