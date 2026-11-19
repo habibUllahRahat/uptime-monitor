@@ -27,7 +27,7 @@ const data = require("./lib/data.js");
 // app object - module scaffolding
 const app = {};
 
-data.delete(
+/* data.delete(
 	"test", //subfolder(it sould be already exist)
 	"new_test_file", //it would be created if it not exist
 	(err, data) => {
@@ -35,7 +35,7 @@ data.delete(
 		console.log(err);
 		console.log(data);
 	},
-);
+); */
 
 //configuration
 /*  app.config = {
