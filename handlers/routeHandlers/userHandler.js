@@ -1,5 +1,8 @@
 //Dependencies
 const { generateHash, parseJson } = require("../../helpers/utilites.js");
+const {
+	_token: { verify },
+} = require("./tokenHandler.js");
 const lib = require("../../lib/data.js");
 // sampleHandler object - module scaffolding
 const handler = {};
@@ -20,7 +23,8 @@ handler.userHandler = (requestProperties, callback) => {
 //an object is made to contain our methods functions
 handler._user = {}; // here _user stand for private properties of the handler
 
-/* user will have:
+/* 
+# The user will have:
 firstName
 lastName
 password
@@ -35,21 +39,32 @@ handler._user.get = (requestProperties, callback) => {
 			? requestProperties.queryString.phone
 			: null;
 
-	lib.read("user", phone, (err, data) => {
-		if (!err && data) {
-			const user = { ...parseJson(data) };
-			const password = new String("#", user.password.length);
-			delete user.password;
-			user.password = password;
-			callback(200, user);
-		} else {
-			callback(404, {
-				message: "User not found while reading file",
-				error: err,
-			});
-		}
-	});
+	const headers = requestProperties.headers;
+	const { token } = headers;
+	if (phone) {
+		verify(token, phone, (verified) => {
+			if (verified) {
+				lib.read("user", phone, (err, data) => {
+					if (!err && data) {
+						const user = { ...parseJson(data) };
+						const password = new String("#", user.password.length);
+						delete user.password;
+						user.password = password;
+						callback(200, user);
+					} else {
+						callback(404, {
+							message: "User not found while reading file",
+							error: err,
+						});
+					}
+				});
+			} else {
+				callback(403, { message: "Not authorized" });
+			}
+		});
+	}
 };
+
 handler._user.post = (requestProperties, callback) => {
 	const user = requestProperties.body;
 	const firstName =
@@ -97,22 +112,44 @@ handler._user.post = (requestProperties, callback) => {
 		});
 	} else {
 		callback(400, {
-			message: "Missing required field",
+			message: "Missing required fields",
 		});
 	}
 };
+
 handler._user.put = (requestProperties, callback) => {
 	lib.checkFileExists("user", `${requestProperties.body.phone}`, (exists) => {
 		if (exists) {
-			lib.update("user", `${requestProperties.body.phone}`, requestProperties.body, (err) => {
-				if (!err) {
-					callback(200, {
-						message: "User updated successfully",
-					});
+			const token =
+				typeof requestProperties.headers.token === "string"
+					? requestProperties.headers.token.trim()
+					: false;
+			const phone =
+				typeof requestProperties.body.phone === "string" &&
+				requestProperties.body.phone.trim().length === 11
+					? requestProperties.body.phone
+					: false;
+
+			verify(token, phone, (verified) => {
+				if (verified) {
+					lib.update(
+						"user",
+						`${requestProperties.body.phone}`,
+						requestProperties.body,
+						(err) => {
+							if (!err) {
+								callback(200, {
+									message: "User updated successfully",
+								});
+							} else {
+								callback(500, {
+									message: "There was a problem in server side ",
+								});
+							}
+						},
+					);
 				} else {
-					callback(500, {
-						message: "There was a problem in server side ",
-					});
+					callback(403, { message: "Unauthicated request" });
 				}
 			});
 		} else {
@@ -122,6 +159,7 @@ handler._user.put = (requestProperties, callback) => {
 		}
 	});
 };
+
 handler._user.delete = (requestProperties, callback) => {
 	const phone =
 		typeof requestProperties.queryString.phone === "string" &&

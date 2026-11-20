@@ -20,4 +20,17 @@ utilites.generateHash = (str) => {
 	}
 };
 
+utilites.createRandomString = (length) => {
+	if (typeof length === "number" && length > 0) {
+		const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123";
+		let output = "";
+		for (let i = 0; i < length; i++) {
+			const randomChar = characters.charAt(Math.floor(Math.random() * characters.length));
+			output += randomChar;
+		}
+		return output;
+	} else {
+		return null;
+	}
+};
 module.exports = utilites;

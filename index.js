@@ -23,7 +23,7 @@ srcipts in package.json
 const http = require("http"); //if it not work check the package.json cause there could be "type":"module" remove it
 const { handleReqRes } = require("./helpers/handleReqRes");
 const environment = require("./helpers/environment.js");
-const data = require("./lib/data.js");
+// const data = require("./lib/data.js");
 // app object - module scaffolding
 const app = {};
 

@@ -25,7 +25,7 @@ handle.handleReqRes = (req, res) => {
 	const method = req.method.toLowerCase(); // toLowerCase() to convert the method name to lowercase cause it can be GET or get
 	const queryString = parsedUrl.query; //get query string
 	const headers = req.headers; //headers has request meta data
-	console.log(headers);
+	// console.log(headers);
 	//# body -> before we leared decoding using buffer.toString(), now we will use Node.js preffered version which using StringDecoder class to decode the body
 
 	const decoder = new StringDecoder("utf-8");
