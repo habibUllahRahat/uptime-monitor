@@ -5,9 +5,9 @@ const handler = {};
 handler._token = {};
 
 handler.tokenHandler = (requestProperties, callback) => {
-	const acceotedMethods = ["get", "post", "put", "delete"];
+	const acceptedMethods = ["get", "post", "put", "delete"];
 
-	if (acceotedMethods.includes(requestProperties.method)) {
+	if (acceptedMethods.includes(requestProperties.method)) {
 		handler._token[requestProperties.method](requestProperties, callback);
 	} else {
 		callback(405, {

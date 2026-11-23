@@ -59,9 +59,11 @@ handler._user.get = (requestProperties, callback) => {
 					}
 				});
 			} else {
-				callback(403, { message: "Not authorized" });
+				callback(403, { message: "Token is not valid" });
 			}
 		});
+	} else {
+		callback(400, { message: "Phone number is required" });
 	}
 };
 
