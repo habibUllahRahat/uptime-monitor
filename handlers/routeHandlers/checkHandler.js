@@ -1,6 +1,9 @@
 const { verify, statusCode } = require("../../helpers/types");
 const { parseJson, createRandomString } = require("../../helpers/utilites");
 const { create, read, update, deleteFile, filesList } = require("../../lib/data");
+const {
+	_token: { verify: verifyToken },
+} = require("./tokenHandler");
 
 //Dependencies
 const handler = {};
@@ -22,6 +25,7 @@ handler._check.post = (requestProperties, callback) => {
 	const timeout = verify.timeout.check(body.timeout);
 	const successCodes = verify.successCodes.check(body.successCodes);
 	const bodydata = { protocol, url, method, successCodes, timeout };
+
 	if (protocol && url && method && timeout && successCodes) {
 		// start of checking data validity
 
@@ -41,70 +45,84 @@ handler._check.post = (requestProperties, callback) => {
 							if (!err_read_user && userData) {
 								const user = parseJson(userData);
 
-								filesList("user", (err_file_list, list) => {
-									if (!err_file_list && list) {
-										console.log("checks folders file list:", list);
-										let checkid = createRandomString(20);
-										while (list.includes(checkid)) {
-											checkid = createRandomString(20);
-											console.log(
-												"Random string created successfully at tokenHandler",
+								if (phone === user.phone) {
+									filesList("user", (err_file_list, list) => {
+										if (!err_file_list && list) {
+											console.log("checks folders file list:", list);
+											let checkid = createRandomString(20);
+
+											while (list.includes(checkid)) {
+												checkid = createRandomString(20);
+												console.log(
+													"Random string created successfully at tokenHandler",
+												);
+											}
+											const checkobj = {
+												id: checkid,
+												phone,
+												protocol,
+												url,
+												method,
+												successCodes,
+												timeout,
+											};
+
+											create(
+												"checks",
+												checkid,
+												checkobj,
+												(err_create_check, data) => {
+													if (!err_create_check && data) {
+														const checks = verify.checks.check(
+															user.checks,
+														);
+														checks.push(checkid);
+														user.checks = checks;
+
+														update(
+															"user",
+															user.phone,
+															user,
+															(err_update_user, updatedUser) => {
+																if (
+																	!err_update_user &&
+																	updatedUser
+																) {
+																	callback(
+																		statusCode.success.code,
+																		user,
+																	);
+																} else {
+																	callback(
+																		statusCode
+																			.internalServerError
+																			.code,
+																		statusCode.internalServerError.msg(),
+																	);
+																} //end of update if else
+															},
+														); //end of update user
+													} else {
+														callback(
+															statusCode.internalServerError.code,
+															statusCode.internalServerError.msg(),
+														);
+													} // end of create check if else
+												},
+											); //end of create check
+										} else {
+											callback(
+												statusCode.internalServerError.code,
+												statusCode.internalServerError.msg(),
 											);
-										}
-										const checkobj = {
-											id: checkid,
-											phone,
-											protocol,
-											url,
-											method,
-											successCodes,
-											timeout,
-										};
-
-										create(
-											"checks",
-											checkid,
-											checkobj,
-											(err_create_check, data) => {
-												if (!err_create_check && data) {
-													const checks = verify.checks.check(user.checks);
-													checks.push(checkid);
-													user.checks = checks;
-
-													update(
-														"user",
-														user.phone,
-														user,
-														(err_update_user, updatedUser) => {
-															if (!err_update_user && updatedUser) {
-																callback(
-																	statusCode.success.code,
-																	user,
-																);
-															} else {
-																callback(
-																	statusCode.internalServerError
-																		.code,
-																	statusCode.internalServerError.msg(),
-																);
-															} //end of update if else
-														},
-													); //end of update user
-												} else {
-													callback(
-														statusCode.internalServerError.code,
-														statusCode.internalServerError.msg(),
-													);
-												} // end of create check if else
-											},
-										); //end of create check
-									} else {
-										callback(
-											statusCode.internalServerError.code,
-											statusCode.internalServerError.msg(),
-										);
-									} // end of file exists if else
-								}); //end of file exists
+										} // end of file exists if else
+									}); //end of file exists
+								} else {
+									callback(
+										statusCode.unauthorized.code,
+										statusCode.unauthorized.msg(),
+									);
+								}
 							} else {
 								callback(
 									statusCode.badRequest.code,
@@ -138,7 +156,51 @@ handler._check.post = (requestProperties, callback) => {
 		}
 	} // end of checking data validity
 };
-handler._check.get = (requestProperties, callback) => {};
+handler._check.get = (requestProperties, callback) => {
+	const { queryString, headers } = requestProperties;
+	const id = verify.id.check(queryString.id);
+	const token = verify.id.check(headers.token);
+	console.log(token, id);
+	if (id && token) {
+		read("checks", id, (err_read_check, check_data) => {
+			if (!err_read_check && check_data) {
+				const checkData = parseJson(check_data);
+				read("tokens", token, (err_read_token, token_data) => {
+					const tokenData = parseJson(token_data);
+					if (!err_read_token && token_data) {
+						read("user", tokenData.phone, (err_read_user, user_data) => {
+							const userData = parseJson(user_data);
+							if (!err_read_user && user_data && userData.checks.includes(id) > -1) {
+								verifyToken(token, tokenData.phone, (isValid) => {
+									console.log(isValid);
+									if (isValid) {
+										callback(statusCode.success.code, checkData);
+									} else {
+										callback(
+											statusCode.unauthorized.code,
+											statusCode.unauthorized.msg(),
+										);
+									}
+								});
+							} else {
+								callback(
+									statusCode.badRequest.code,
+									statusCode.badRequest.msg("User"),
+								);
+							}
+						});
+					} else {
+						callback(statusCode.badRequest.code, statusCode.badRequest.msg("Token"));
+					}
+				});
+			} else {
+				callback(statusCode.notFound.code, statusCode.notFound.msg("Check"));
+			}
+		});
+	} else {
+		callback(statusCode.badRequest.code, statusCode.badRequest.msg("Token or Id"));
+	}
+};
 handler._check.put = (requestProperties, callback) => {};
 handler._check.delete = (requestProperties, callback) => {};
 
