@@ -6,7 +6,7 @@ types.verify = {
 			return typeof url === this.type && url.trim().length > 0 ? url : null;
 		},
 	},
-	protocols: {
+	protocol: {
 		type: "string",
 		values: ["http", "https"],
 		check(protocols) {
@@ -16,10 +16,17 @@ types.verify = {
 		},
 	},
 	method: {
-		type: "string",
+		type: "array",
 		values: ["get", "post", "put", "delete"],
-		check(method) {
-			return typeof method === this.type && this.values.includes(method) ? method : null;
+		check(value) {
+			return Array.isArray(value) &&
+				value.length > 0 &&
+				value.every(
+					(method) =>
+						typeof method === "string" && this.values.includes(method.toLowerCase()),
+				)
+				? value.map((method) => method.toLowerCase())
+				: null;
 		},
 	},
 	timeout: {
@@ -37,7 +44,9 @@ types.verify = {
 			return typeof successCode === "object" &&
 				successCode.length > 0 &&
 				successCode instanceof Array
-				? successCode
+				? successCode.every((value) => typeof value === "number" && value > 0)
+					? successCode
+					: null
 				: null;
 		},
 	},
@@ -91,66 +100,122 @@ types.verify = {
 			return typeof value === this.type ? value : this.default;
 		},
 	},
+	token: {
+		type: "string",
+		length: 20,
+		check(value) {
+			return typeof value === this.type && value.trim().length === this.length
+				? value.trim()
+				: null;
+		},
+	},
+	checks: {
+		type: "object",
+		check(value) {
+			return Array.isArray(value) && value.length > 0 ? value : [];
+		},
+	},
+	checkObj: {
+		type: "object",
+		check(value) {
+			if (typeof value !== this.type || value === null || Array.isArray(value)) {
+				return null;
+			}
+
+			const check = {
+				id: types.verify.id.check(value.id),
+				protocol: types.verify.protocols.check(value.protocol),
+				method: Array.isArray(value.method)
+					? value.method.map((method) => types.verify.method.check(method))
+					: null,
+				successCodes: types.verify.successCodes.check(value.successCodes),
+				timeout: types.verify.timeout.check(value.timeout),
+				url: types.verify.url.check(value.url),
+				phone: types.verify.phone.check(value.phone),
+			};
+
+			return Object.values(check).every((item) => item !== null) ? check : null;
+		},
+	},
 };
+
 types.statusCode = {
 	success: {
 		code: 200,
 		msg(resource = "Request") {
-			return `${resource} completed successfully.`;
+			return { message: `${resource} completed successfully.` };
 		},
 	},
+
 	created: {
 		code: 201,
 		msg(resource = "Resource") {
-			return `${resource} created successfully.`;
+			return { message: `${resource} created successfully.` };
 		},
 	},
+
 	accepted: {
 		code: 202,
 		msg(resource = "Request") {
-			return `${resource} accepted successfully.`;
+			return { message: `${resource} accepted successfully.` };
 		},
 	},
+
 	noContent: {
 		code: 204,
 		msg() {
-			return "Request completed successfully.";
+			return { message: "Request completed successfully." };
 		},
 	},
+
 	badRequest: {
 		code: 400,
 		msg(resource = "Request") {
-			return `Invalid ${resource.toLowerCase()}.`;
+			return { message: `Invalid ${resource.toLowerCase()} data.` };
 		},
 	},
+
 	unauthorized: {
 		code: 401,
 		msg() {
-			return "Authentication is required.";
+			return { message: "Authentication is required." };
 		},
 	},
+
 	forbidden: {
 		code: 403,
 		msg() {
-			return "You do not have permission to perform this action.";
+			return {
+				message: "You do not have permission to perform this action.",
+			};
 		},
 	},
+
 	notFound: {
 		code: 404,
 		msg(resource = "Resource") {
-			return `${resource} not found.`;
+			return { message: `${resource} not found.` };
 		},
 	},
+
 	conflict: {
 		code: 409,
 		msg(resource = "Resource") {
-			return `${resource} already exists.`;
+			return { message: `${resource} already exists.` };
 		},
 	},
+
+	unprocessableEntity: {
+		code: 422,
+		msg() {
+			return { message: "The provided data failed validation." };
+		},
+	},
+
 	internalServerError: {
 		code: 500,
 		msg() {
-			return "An unexpected server error occurred.";
+			return { message: "An unexpected server error occurred." };
 		},
 	},
 };

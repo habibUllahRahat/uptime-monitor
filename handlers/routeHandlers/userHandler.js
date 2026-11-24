@@ -94,6 +94,7 @@ handler._user.post = (requestProperties, callback) => {
 					phone,
 					password: generateHash(password),
 					tosAgreement,
+					checks: [],
 				};
 				lib.create("user", `${phone}`, userObj, (err_create) => {
 					if (err_create) {
@@ -170,7 +171,7 @@ handler._user.delete = (requestProperties, callback) => {
 			: null;
 	lib.checkFileExists("user", phone, (exists) => {
 		if (exists) {
-			lib.delete("user", phone, (err) => {
+			lib.deleteFile("user", phone, (err) => {
 				if (!err) {
 					callback(200, {
 						message: "User deleted successfully",

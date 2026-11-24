@@ -130,7 +130,7 @@ handler._token.delete = (requestProperties, callback) => {
 	if (id) {
 		lib.checkFileExists("tokens", id, (exists) => {
 			if (exists) {
-				lib.delete("tokens", id, (err) => {
+				lib.deleteFile("tokens", id, (err) => {
 					if (!err) {
 						callback(200, { message: `${id} deleted success fully` });
 					} else {
