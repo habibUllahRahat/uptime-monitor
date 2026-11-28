@@ -137,6 +137,14 @@ types.verify = {
 			return Object.values(check).every((item) => item !== null) ? check : null;
 		},
 	},
+	userMsg: {
+		type: "string",
+		check(value) {
+			return typeof value === "string" && value.trim() > 0 && value.trim() < 1601
+				? value
+				: null;
+		},
+	},
 };
 
 types.statusCode = {
