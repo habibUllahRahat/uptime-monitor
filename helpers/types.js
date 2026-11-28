@@ -11,7 +11,7 @@ types.verify = {
 		values: ["http", "https"],
 		check(protocols) {
 			return typeof protocols === this.type && this.values.includes(protocols)
-				? protocols
+				? protocols.toLowerCase()
 				: null;
 		},
 	},
@@ -25,7 +25,7 @@ types.verify = {
 					(method) =>
 						typeof method === "string" && this.values.includes(method.toLowerCase()),
 				)
-				? value.map((method) => method.toLowerCase())
+				? [...new Set(value.map((method) => method.toLowerCase()))]
 				: null;
 		},
 	},
@@ -33,20 +33,21 @@ types.verify = {
 		type: "number",
 		remaineder: "1",
 		check(timeout) {
-			return typeof timeout === this.type && timeout > 0 && timeout < 5 && timeout % 1 === 0
+			return typeof timeout === this.type &&
+				timeout > 0 &&
+				timeout < 5 &&
+				Number.isInteger(value)
 				? timeout
 				: null;
 		},
 	},
 	successCodes: {
 		type: "object",
-		check(successCode) {
-			return typeof successCode === "object" &&
-				successCode.length > 0 &&
-				successCode instanceof Array
-				? successCode.every((value) => typeof value === "number" && value > 0 && value < 5)
-					? successCode
-					: null
+		check(value) {
+			return Array.isArray(value) &&
+				value.length > 0 &&
+				value.every((code) => Number.isInteger(code) && code >= 100 && code <= 599)
+				? [...new Set(value)]
 				: null;
 		},
 	},
@@ -124,14 +125,12 @@ types.verify = {
 
 			const check = {
 				id: types.verify.id.check(value.id),
-				protocol: types.verify.protocols.check(value.protocol),
-				method: Array.isArray(value.method)
-					? value.method.map((method) => types.verify.method.check(method))
-					: null,
+				phone: types.verify.phone.check(value.phone),
+				protocol: types.verify.protocol.check(value.protocol),
+				url: types.verify.url.check(value.url),
+				method: types.verify.method.check(value.method),
 				successCodes: types.verify.successCodes.check(value.successCodes),
 				timeout: types.verify.timeout.check(value.timeout),
-				url: types.verify.url.check(value.url),
-				phone: types.verify.phone.check(value.phone),
 			};
 
 			return Object.values(check).every((item) => item !== null) ? check : null;
