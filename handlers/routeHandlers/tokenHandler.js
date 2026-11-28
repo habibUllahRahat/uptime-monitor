@@ -149,6 +149,7 @@ handler._token.delete = (requestProperties, callback) => {
 handler._token.verify = (id, phone, callback) => {
 	const token = typeof id === "string" && id.trim().length > 0 ? id : null;
 	const token_phone = typeof phone === "string" && phone.trim().length === 11 ? phone : null;
+	console.log(`${token} and ${token_phone}`);
 
 	if (!token || !token_phone) return callback(false);
 
@@ -159,6 +160,11 @@ handler._token.verify = (id, phone, callback) => {
 			if (token_phone === tokenObj.phone && tokenObj.expires > Date.now()) {
 				callback(true);
 			} else {
+				if (token_phone !== tokenObj.phone)
+					console.log(
+						`Token phone is invalid\n\tsent:${phone}\n\tacctual:${tokenObj.phone}`,
+					);
+				else console.log(`Token date is invalid\n\tsent :${tokenObj.expires}\n\tacctual`);
 				callback(false);
 			}
 		} else {

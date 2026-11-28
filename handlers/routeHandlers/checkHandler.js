@@ -1,6 +1,6 @@
 const { verify, statusCode } = require("../../helpers/types");
 const { parseJson, createRandomString } = require("../../helpers/utilites");
-const { create, read, update, deleteFile, filesList } = require("../../lib/data");
+const { create, read, update, deleteFile, filesList, checkFileExists } = require("../../lib/data");
 const {
 	_token: { verify: verifyToken },
 } = require("./tokenHandler");
@@ -201,7 +201,126 @@ handler._check.get = (requestProperties, callback) => {
 		callback(statusCode.badRequest.code, statusCode.badRequest.msg("Token or Id"));
 	}
 };
-handler._check.put = (requestProperties, callback) => {};
-handler._check.delete = (requestProperties, callback) => {};
+handler._check.put = (requestProperties, callback) => {
+	const { body } = requestProperties;
+	const id = verify.id.check(body.id);
+	const token = verify.token.check(requestProperties.headers.token);
+	let keys = Object.keys(body);
+	keys = keys.includes("id") > -1 ? keys.splice(keys.includes("id")) : keys;
+	if (id) {
+		read("checks", id, (err_read_check, check_data) => {
+			if (!err_read_check && check_data) {
+				const checkObj = parseJson(check_data);
+				verifyToken(token, checkObj.phone, (is_token_valid) => {
+					if (is_token_valid) {
+						const dataToUpdate = {};
+						let invalid = "{ ";
+						keys.forEach((k) => {
+							if (checkObj[k]) {
+								dataToUpdate[k] = verify[k].check(body[k]) ? body[k] : checkObj[k];
+							} else {
+								invalid += `${k} : ${body[k]}, `;
+							}
+						});
+						invalid += " }";
+						if (dataToUpdate && !invalid) {
+							update("checks", id, dataToUpdate, (err_update_check, check_data) => {
+								if (!err_update_check) {
+									callback(statusCode.success.code, check_data);
+								} else {
+									callback(
+										statusCode.internalServerError.code,
+										statusCode.internalServerError.msg(),
+									);
+								}
+							});
+						} else {
+							callback(
+								statusCode.badRequest.code,
+								statusCode.badRequest.msg(`Invalid argument and value:${invalid}`),
+							);
+						}
+					} else {
+						callback(
+							statusCode.badRequest.code,
+							statusCode.badRequest.msg("Invalid Token"),
+						);
+					}
+				});
+			} else {
+				callback(statusCode.badRequest.code, statusCode.badRequest.msg("reading check"));
+			}
+		});
+	} else {
+		callback(statusCode.badRequest.code, statusCode.badRequest.msg("ID"));
+	}
+};
+handler._check.delete = (requestProperties, callback) => {
+	const { body } = requestProperties;
+	const id = verify.id.check(body.id);
+	const token = verify.token.check(requestProperties.headers.token);
+	if (id) {
+		read("checks", id, (err_read_check, check_data) => {
+			if (!err_read_check && check_data) {
+				verifyToken(token, parseJson(check_data).phone, (isValid) => {
+					if (isValid) {
+						checkFileExists("checks", id, (exists) => {
+							if (exists) {
+								deleteFile("checks", id, (err_delete_check) => {
+									if (!err_delete_check) {
+										read(
+											"user",
+											parseJson(check_data).phone,
+											(err_read_user, user_data) => {
+												const userObj = parseJson(user_data);
+												if (!err_read_user && user_data) {
+													let checks = userObj.checks.filter(
+														(check) => check !== id,
+													);
+													update(
+														"user",
+														parseJson(user_data).phone,
+														{ checks },
+														(err_update_user, update_data) => {
+															if (!err_update_user && update_data) {
+																callback(
+																	statusCode.success.code,
+																	update_data,
+																);
+															} else {
+															}
+														},
+													);
+												} else {
+													callback(
+														statusCode.internalServerError.code,
+														statusCode.badRequest.msg("update"),
+													);
+												}
+											},
+										);
+									} else {
+										callback(
+											statusCode.internalServerError.code,
+											statusCode.badRequest.msg("delete"),
+										);
+									}
+								});
+							} else {
+								callback(statusCode.noContent.code, statusCode.noContent.msg());
+							}
+						});
+					} else {
+						callback(statusCode.badRequest.code, statusCode.badRequest.msg("token"));
+					}
+				});
+			} else {
+				callback(statusCode.badRequest.code, statusCode.badRequest.msg("reading check"));
+			}
+		});
+	} else {
+		callback(statusCode.badRequest.code, statusCode.badRequest.msg("id"));
+	}
+};
 
 module.exports = handler;

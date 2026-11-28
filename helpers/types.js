@@ -44,7 +44,7 @@ types.verify = {
 			return typeof successCode === "object" &&
 				successCode.length > 0 &&
 				successCode instanceof Array
-				? successCode.every((value) => typeof value === "number" && value > 0)
+				? successCode.every((value) => typeof value === "number" && value > 0 && value < 5)
 					? successCode
 					: null
 				: null;
